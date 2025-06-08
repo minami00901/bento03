@@ -10,7 +10,7 @@
       margin: 0;
       font-family: sans-serif;
       text-align: center;
-      background: url('https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed;
+      background: url('https://raw.githubusercontent.com/minami00901/bento03/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed;
       background-size: cover;
       padding: 2rem;
       transition: background 1s ease;
@@ -48,6 +48,11 @@
       max-width: 600px;
       margin: 2rem auto 0;
     }
+    #thankMessage {
+      margin-top: 2rem;
+      font-size: 1.5rem;
+      color: #333;
+    }
   </style>
 </head>
 <body>
@@ -59,11 +64,9 @@
 
   <button id="showQuestionBtn">ひとくちアンケートにご協力をおねがいします</button>
 
-  <img id="mainImage" src="https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%81%82%E3%82%8A%E3%81%8C%E3%81%A8%E3%81%86%E3%81%94%E3%81%96%E3%81%84%E3%81%BE%E3%81%99%20(1).png" alt="演出画像">
+  <img id="mainImage" src="https://raw.githubusercontent.com/minami00901/bento03/main/%E3%81%82%E3%82%8A%E3%81%8C%E3%81%A8%E3%81%86%E3%81%94%E3%81%96%E3%81%84%E3%81%BE%E3%81%99%20(1).png" alt="演出画像">
 
   <script>
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbzOX8HqfDoH8t4XTM6Gc02d-H-FPZhISHIuDh6bjCbIyQNMs5VOebWfKvSkxqDoHVoQEg/exec";
-
     const questions = [
       {
         text: "今日のお弁当はいかがですか？",
@@ -86,6 +89,9 @@
     const showQuestionBtn = document.getElementById("showQuestionBtn");
     const mainImage = document.getElementById("mainImage");
 
+    // GASのWebアプリURL（あなたのものに差し替えてください）
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzOX8HqfDoH8t4XTM6Gc02d-H-FPZhISHIuDh6bjCbIyQNMs5VOebWfKvSkxqDoHVoQEg/exec";
+
     function getRandomQuestionIndex() {
       let idx;
       do {
@@ -106,46 +112,57 @@
         btn.textContent = opt;
         btn.onclick = () => {
           sendAnswer(q.text, opt);
-          startAnimation();
         };
         optionsDiv.appendChild(btn);
       });
 
       questionBox.style.display = "block";
       mainImage.style.display = "none";
-      body.style.background = "url('https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed";
+
+      // 背景リセット
+      body.style.background = "url('https://raw.githubusercontent.com/minami00901/bento03/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed";
       body.style.backgroundSize = "cover";
+
+      // ボタンを消す
       showQuestionBtn.style.display = "none";
     }
 
     function sendAnswer(question, answer) {
-      fetch(scriptUrl, {
+      // 回答をGASにPOST送信
+      fetch(GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer })
+        body: JSON.stringify({ question, answer, timestamp: new Date().toISOString() }),
       })
       .then(res => {
         if (!res.ok) throw new Error("送信失敗");
-        console.log("回答送信成功");
+        return res.text();
+      })
+      .then(() => {
+        startAnimation();
       })
       .catch(err => {
-        console.error("送信エラー:", err);
+        alert("送信に失敗しました。もう一度お試しください。");
+        console.error(err);
       });
     }
 
     function startAnimation() {
       questionBox.style.display = "none";
+
+      // 背景を白に変更
       body.style.background = "#fff";
 
+      // メッセージ表示
       const message = document.createElement("h2");
+      message.id = "thankMessage";
       message.textContent = "「DIGITAL」で「おいしい」がつながる！";
-      message.style.marginTop = "2rem";
-      message.style.fontSize = "1.5rem";
-      message.style.color = "#333";
       body.appendChild(message);
 
+      // 画像表示
       mainImage.style.display = "block";
 
+      // クラッカー演出
       setTimeout(() => {
         confetti({
           particleCount: 150,
