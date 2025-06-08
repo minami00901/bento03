@@ -1,64 +1,163 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>ありがとうページ</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>お弁当アンケートAR</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     body {
-      background: #ffffff;
-      text-align: center;
       margin: 0;
-      padding: 2rem;
       font-family: sans-serif;
+      text-align: center;
+      background: url('https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed;
+      background-size: cover;
+      padding: 2rem;
+      transition: background 1s ease;
     }
-    #thanksImg {
-      max-width: 300px;
-      position: absolute;
-      transition: all 0.2s linear;
+    #questionBox {
+      background: rgba(166, 208, 247, 0.85);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      margin-bottom: 2rem;
+      display: none;
     }
-    .sparkle {
-      animation: sparkle 1s ease-in-out infinite alternate;
+    button {
+      display: block;
+      margin: 0.5rem auto;
+      padding: 0.5rem 1.2rem;
+      font-size: 1rem;
+      border-radius: 1rem;
+      border: none;
+      background: #ffd700;
+      cursor: pointer;
     }
-    @keyframes sparkle {
-      0% { filter: brightness(1); }
-      100% { filter: brightness(1.6); }
+    #showQuestionBtn {
+      background-color: #d8b0f9;
+      animation: pulse 2s infinite;
     }
-    .message {
-      margin-top: 350px;
-      font-size: 1.5rem;
-      opacity: 0;
-      animation: fadeIn 2s ease 2s forwards;
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
-    @keyframes fadeIn {
-      to { opacity: 1; }
+    #mainImage {
+      display: none;
+      width: 70vw;
+      max-width: 600px;
+      margin: 2rem auto 0;
     }
   </style>
 </head>
 <body>
 
-  <img id="thanksImg" src="https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%81%8A%E3%81%84%E3%81%97%E3%81%84%E3%81%A8%E3%83%87%E3%82%B8%E3%82%BF%E3%83%AB%E3%81%A7%E7%B9%8B%E3%81%8C%E3%82%8C%EF%BC%81.png" alt="ありがとう画像">
+  <div id="questionBox">
+    <h2>質問がここに出ます</h2>
+    <div id="options"></div>
+  </div>
 
-  <div class="message">おいしいとデジタルでつながる！</div>
+  <button id="showQuestionBtn">ひとくちアンケートにご協力をおねがいします</button>
+
+  <img id="mainImage" src="https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%81%82%E3%82%8A%E3%81%8C%E3%81%A8%E3%81%86%E3%81%94%E3%81%96%E3%81%84%E3%81%BE%E3%81%99%20(1).png" alt="演出画像">
 
   <script>
-    const img = document.getElementById("thanksImg");
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbzOX8HqfDoH8t4XTM6Gc02d-H-FPZhISHIuDh6bjCbIyQNMs5VOebWfKvSkxqDoHVoQEg/exec";
 
-    let count = 0;
-    const interval = setInterval(() => {
-      const x = Math.random() * (window.innerWidth - 300);
-      const y = Math.random() * (window.innerHeight - 300);
-      img.style.left = `${x}px`;
-      img.style.top = `${y}px`;
-      count++;
-      if (count >= 10) { // 約2秒動かす
-        clearInterval(interval);
-        // 中央に固定
-        img.style.left = "50%";
-        img.style.top = "30%";
-        img.style.transform = "translate(-50%, -50%)";
-        img.classList.add("sparkle");
+    const questions = [
+      {
+        text: "今日のお弁当はいかがですか？",
+        options: ["① とても美味しかった", "② 普通（空腹は満たされました）", "③ ちょっと惜しい（あと一歩）"]
+      },
+      {
+        text: "お腹いっぱいになりましたか？",
+        options: ["① 満腹です！はち切れそうです", "② 丁度いいです。おいしく食べられました", "③ あともう１P食べられそうです…"]
+      },
+      {
+        text: "このお弁当を食べさせたいと思うひとは誰ですか？",
+        options: ["① ちゃんと食べてる？忙しそうなあの人へ", "② これから発表！どきどきのあの人へ", "③ 自分（また食べたい）"]
       }
-    }, 200);
+    ];
+
+    let lastQuestionIndex = -1;
+    const body = document.body;
+    const questionBox = document.getElementById("questionBox");
+    const optionsDiv = document.getElementById("options");
+    const showQuestionBtn = document.getElementById("showQuestionBtn");
+    const mainImage = document.getElementById("mainImage");
+
+    function getRandomQuestionIndex() {
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * questions.length);
+      } while (idx === lastQuestionIndex);
+      lastQuestionIndex = idx;
+      return idx;
+    }
+
+    function showQuestion() {
+      const idx = getRandomQuestionIndex();
+      const q = questions[idx];
+      questionBox.querySelector("h2").textContent = q.text;
+      optionsDiv.innerHTML = "";
+
+      q.options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.onclick = () => {
+          sendAnswer(q.text, opt);
+          startAnimation();
+        };
+        optionsDiv.appendChild(btn);
+      });
+
+      questionBox.style.display = "block";
+      mainImage.style.display = "none";
+      body.style.background = "url('https://raw.githubusercontent.com/minami00901/bento-ar/main/%E3%83%86%E3%82%B9%E3%83%88.jpg') no-repeat center center fixed";
+      body.style.backgroundSize = "cover";
+      showQuestionBtn.style.display = "none";
+    }
+
+    function sendAnswer(question, answer) {
+      fetch(scriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("送信失敗");
+        console.log("回答送信成功");
+      })
+      .catch(err => {
+        console.error("送信エラー:", err);
+      });
+    }
+
+    function startAnimation() {
+      questionBox.style.display = "none";
+      body.style.background = "#fff";
+
+      const message = document.createElement("h2");
+      message.textContent = "「DIGITAL」で「おいしい」がつながる！";
+      message.style.marginTop = "2rem";
+      message.style.fontSize = "1.5rem";
+      message.style.color = "#333";
+      body.appendChild(message);
+
+      mainImage.style.display = "block";
+
+      setTimeout(() => {
+        confetti({
+          particleCount: 150,
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: ['#fce18a', '#ff726d', '#b48def', '#f4306d'],
+        });
+      }, 500);
+    }
+
+    showQuestionBtn.addEventListener("click", showQuestion);
   </script>
+
 </body>
 </html>
